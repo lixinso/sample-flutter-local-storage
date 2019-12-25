@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "package:shared_preferences/shared_preferences.dart";
 
 void main() => runApp(MyApp());
 
@@ -44,18 +45,56 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  TextEditingController nameController = TextEditingController();
+  bool isLoggedIn = false;
+  String name = '';
+
+  @override
+  void initState(){
+    super.initState();
+    autoLogin();
   }
+
+  void autoLogin() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String userId = prefs.getString("username");
+
+    if(userId != null){
+      setState(() {
+        isLoggedIn = true;
+        name = userId;
+      });
+      return;
+    }
+  }
+
+  Future<Null> logout() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("username", null);
+
+    setState(() {
+      name = '';
+      isLoggedIn = false;
+    });
+
+    nameController.clear();
+
+  }
+
+  Future<Null> loginUser() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString("username", nameController.text);
+
+    setState(() {
+      name = nameController.text;
+      isLoggedIn = true;
+    });
+
+    nameController.clear();
+
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -91,21 +130,25 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
+            !isLoggedIn? TextField(
+              textAlign: TextAlign.center,
+              controller: nameController,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Please enter your username'
+              ),
+            ) :
+            Text("You are logged in as $name"),
+            SizedBox(height: 10.0),
+            RaisedButton(
+              onPressed: (){
+                isLoggedIn? logout(): loginUser();
+              },
+              child: isLoggedIn? Text('Logout') : Text("Login"),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
